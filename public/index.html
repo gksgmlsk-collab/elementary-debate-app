@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 토론 코치</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <div class="app">
+    <header class="header">
+      <div>
+        <p class="eyebrow">초등학교 6학년 국어 토론 수업</p>
+        <h1>AI 토론 코치</h1>
+        <p class="description">
+          주장 다지기, 반론하기, 재반박하기, 최종 정리하기 단계를 선택하고
+          AI와 대화하며 토론 생각을 키워보세요.
+        </p>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel settings-panel">
+        <h2>토론 단계 선택</h2>
+
+        <div class="stage-list">
+          <label class="stage-card">
+            <input type="radio" name="stage" value="claim" checked />
+            <span>
+              <strong>1. 주장 다지기</strong>
+              <small>내 주장과 근거를 더 분명하게 만들기</small>
+            </span>
+          </label>
+
+          <label class="stage-card">
+            <input type="radio" name="stage" value="counter" />
+            <span>
+              <strong>2. 반론하기</strong>
+              <small>반대 입장에서 생각해보기</small>
+            </span>
+          </label>
+
+          <label class="stage-card">
+            <input type="radio" name="stage" value="rebuttal" />
+            <span>
+              <strong>3. 재반박하기</strong>
+              <small>반론에 다시 답하기</small>
+            </span>
+          </label>
+
+          <label class="stage-card">
+            <input type="radio" name="stage" value="final" />
+            <span>
+              <strong>4. 최종 정리하기</strong>
+              <small>토론 발표 문장으로 정리하기</small>
+            </span>
+          </label>
+        </div>
+
+        <div class="guide-box">
+          <h3>사용 방법</h3>
+          <ol>
+            <li>토론 단계를 선택합니다.</li>
+            <li>내 주장이나 고민을 입력합니다.</li>
+            <li>AI 질문에 답하며 생각을 이어갑니다.</li>
+            <li>대화 내용은 자동 저장됩니다.</li>
+          </ol>
+        </div>
+
+        <button id="clear-button" class="secondary-button">
+          대화 새로 시작하기
+        </button>
+      </section>
+
+      <section class="panel chat-panel">
+        <div class="chat-header">
+          <div>
+            <h2>대화창</h2>
+            <p id="save-status">대화 내용이 자동 저장됩니다.</p>
+          </div>
+        </div>
+
+        <div id="chat-box" class="chat-box"></div>
+
+        <form id="chat-form" class="chat-form">
+          <textarea
+            id="student-input"
+            rows="3"
+            placeholder="예: 체육 시간에는 인기 종목보다 다양한 종목을 경험해야 한다고 생각해요."
+          ></textarea>
+
+          <button type="submit" id="send-button">
+            AI에게 보내기
+          </button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const chatBox = document.getElementById('chat-box');
+    const chatForm = document.getElementById('chat-form');
+    const studentInput = document.getElementById('student-input');
+    const clearButton = document.getElementById('clear-button');
+    const saveStatus = document.getElementById('save-status');
+    const sendButton = document.getElementById('send-button');
+
+    const STORAGE_KEY = 'ai-debate-chat-history';
+
+    let history = [];
+
+    function getSelectedStage() {
+      const checked = document.querySelector('input[name="stage"]:checked');
+      return checked ? checked.value : 'claim';
+    }
+
+    function getStageName(stage) {
+      const names = {
+        claim: '주장 다지기',
+        counter: '반론하기',
+        rebuttal: '재반박하기',
+        final: '최종 정리하기'
+      };
+
+      return names[stage] || '주장 다지기';
+    }
+
+    function saveHistory() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+      saveStatus.innerText = '대화 내용이 저장되었습니다.';
+    }
+
+    function loadHistory() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+
+      if (saved) {
+        try {
+          history = JSON.parse(saved);
+        } catch (error) {
+          history = [];
+        }
+      }
+
+      if (history.length === 0) {
+        history.push({
+          role: 'ai',
+          stage: 'guide',
+          content:
+            '안녕! 나는 AI 토론 코치야. 먼저 왼쪽에서 토론 단계를 고르고, 너의 주장이나 고민을 적어줘. 어려우면 짧게 써도 괜찮아.'
+        });
+      }
+
+      renderChat();
+    }
+
+    function renderChat() {
+      chatBox.innerHTML = '';
+
+      history.forEach((message) => {
+        const bubble = document.createElement('div');
+        bubble.className = `message ${message.role === 'student' ? 'student' : 'ai'}`;
+
+        const meta = document.createElement('div');
+        meta.className = 'message-meta';
+
+        if (message.role === 'student') {
+          meta.innerText = `학생 · ${getStageName(message.stage)}`;
+        } else {
+          meta.innerText = message.stage === 'guide' ? 'AI 안내' : `AI 코치 · ${getStageName(message.stage)}`;
+        }
+
+        const content = document.createElement('div');
+        content.className = 'message-content';
+        content.innerText = message.content;
+
+        bubble.appendChild(meta);
+        bubble.appendChild(content);
+        chatBox.appendChild(bubble);
+      });
+
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function addMessage(role, content, stage) {
+      history.push({
+        role,
+        content,
+        stage
+      });
+
+      saveHistory();
+      renderChat();
+    }
+
+    async function sendMessage(event) {
+      event.preventDefault();
+
+      const message = studentInput.value.trim();
+      const stage = getSelectedStage();
+
+      if (!message) {
+        alert('내용을 입력해 주세요.');
+        return;
+      }
+
+      addMessage('student', message, stage);
+
+      studentInput.value = '';
+      studentInput.focus();
+
+      sendButton.disabled = true;
+      sendButton.innerText = 'AI 생각 중...';
+
+      const loadingMessage = {
+        role: 'ai',
+        content: 'AI가 너의 생각을 읽고 질문을 준비하고 있어...',
+        stage
+      };
+
+      history.push(loadingMessage);
+      renderChat();
+
+      try {
+        const response = await fetch('/api/debate-chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            stage,
+            message,
+            history: history.filter((item) => item !== loadingMessage)
+          })
+        });
+
+        const data = await response.json();
+
+        history = history.filter((item) => item !== loadingMessage);
+
+        if (!response.ok) {
+          addMessage('ai', data.error || 'AI 응답을 가져오지 못했어요.', stage);
+        } else {
+          addMessage('ai', data.reply, stage);
+        }
+
+      } catch (error) {
+        history = history.filter((item) => item !== loadingMessage);
+        addMessage('ai', '서버와 연결하는 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.', stage);
+      } finally {
+        sendButton.disabled = false;
+        sendButton.innerText = 'AI에게 보내기';
+        saveHistory();
+        renderChat();
+      }
+    }
+
+    function clearChat() {
+      const confirmClear = confirm('저장된 대화를 모두 지우고 새로 시작할까요?');
+
+      if (!confirmClear) return;
+
+      localStorage.removeItem(STORAGE_KEY);
+
+      history = [
+        {
+          role: 'ai',
+          stage: 'guide',
+          content:
+            '새 대화를 시작했어. 왼쪽에서 단계를 고르고, 너의 주장이나 고민을 적어줘.'
+        }
+      ];
+
+      saveHistory();
+      renderChat();
+    }
+
+    chatForm.addEventListener('submit', sendMessage);
+    clearButton.addEventListener('click', clearChat);
+
+    loadHistory();
+  </script>
+</body>
+</html>
