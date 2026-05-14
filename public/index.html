@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>AI 토론 코치</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="container">
+    <h1>AI 토론 코치</h1>
+
+    <form id="debate-form">
+      <label for="student-argument">나의 주장</label>
+      <textarea id="student-argument" rows="5" placeholder="예: 통일 한국에는 경제 성장이 가장 중요하다."></textarea>
+      <button type="submit">AI 반론 받기</button>
+    </form>
+
+    <div class="response-section">
+      <h2>AI의 반론</h2>
+      <p id="response-text">여기에 AI 반론이 표시됩니다.</p>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('debate-form');
+    const studentInput = document.getElementById('student-argument');
+    const responseText = document.getElementById('response-text');
+
+    form.addEventListener('submit', async function(event) {
+      event.preventDefault();
+
+      const argument = studentInput.value;
+
+      responseText.innerText = 'AI가 생각 중...';
+
+      try {
+        const response = await fetch('/api/debate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            argument: argument
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.counterArgument) {
+          responseText.innerText = data.counterArgument;
+        } else {
+          responseText.innerText = data.error || '응답을 받지 못했어요.';
+        }
+
+      } catch (error) {
+        responseText.innerText = '서버 연결 오류가 발생했어요.';
+      }
+    });
+  </script>
+</body>
+</html>
